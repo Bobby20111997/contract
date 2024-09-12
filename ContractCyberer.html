@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contract Signing</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background-color: #e0f7fa;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .container {
+            width: 80%;
+            max-width: 800px;
+            margin: 20px;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            max-height: 90vh; /* Ensure the container doesn't exceed viewport */
+            overflow-y: auto; /* Allow scrolling within the container */
+        }
+
+        input, button {
+            margin: 10px 0;
+            padding: 10px;
+            width: 100%;
+            box-sizing: border-box;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+
+        button {
+            background-color: #007bff;
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        button:disabled {
+            background-color: #ddd;
+            cursor: not-allowed;
+        }
+
+        .spinner {
+            margin-right: 10px;
+            display: none;
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 4px solid white;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .scroll-window {
+            width: calc(100vw - 60px); /* Width of window minus 60px */
+            height: auto; /* 3/4 of the viewport height */
+            overflow: auto;
+            box-sizing: border-box;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background: #f9f9f9;
+            padding: 10px;
+            margin: 20px 0;
+        }
+
+        .scroll-window img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin: 0 auto;
+        }
+
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+        }
+
+.overlay-check {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    justify-content: center;
+    align-items: center;
+    z-index: 10;
+}
+
+        .overlay-content {
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            width: 90%;
+            max-width: 800px;
+            max-height: 90vh; /* Ensure content is scrollable within the overlay */
+            overflow-y: auto;
+        }
+
+        #signaturePad {
+            border: 1px solid #ddd;
+            width: 800px;
+            height: 300px;
+        }
+
+        #closeOverlayBtn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: none;
+            border: none;
+            font-size: 18px;
+            cursor: pointer;
+            color: #333;
+            font-weight: bold;
+        }
+
+        #closeOverlayBtn:hover {
+            color: gray; /* Optional: Change color on hover for better UX */
+        }
+    </style>
+</head>
+<body>
+
+<div class="container" id="codeEntrySection">
+    <input type="text" id="codeInput" placeholder="Enter your code">
+    <button onclick="fetchDocument()" id="fetchButton">
+        <div class="spinner" id="buttonSpinner"></div>
+        <span id="fetchButtonText">Fetch Document</span>
+    </button>
+</div>
+
+<!-- Signature Pad Overlay -->
+<div class="overlay-check" id="overlay-check">
+    <div class="overlay-content">
+        <h2>Please Enter Your FULL NAME</h2>
+        <input type="text" id="userFullName" placeholder="Your Name">
+        <button onclick="CheckFullName()">Check</button>
+    </div>
+</div>
+
+<div class="container " id="imageViewSection" style="display: none;">
+    <h1>Your Contract</h1>
+    <p>Please read this agreement/contract carefully and click the ‘Agree & Sign’ button to sign and confirm after confirming everything. Once signed, this agreement/contract will only become invalid when the expiration date is reached!</p>
+    <p style="color: red;">Please make sure your name and all other info is Correct in the Contract</p>
+    <i>You will only be able to sign when the time is up and scroll to the bottom slowly!</i>
+    <p>Please contact at bobbywang0225@icloud.com if you have any query!</p>
+    <div class="scroll-window" id="imageContainer"></div>
+    <button onclick="showSignaturePad()" id="actionButton" disabled>Agree & Sign</button>
+</div>
+
+<!-- Signature Pad Overlay -->
+<div class="overlay" id="overlay">
+    <div class="overlay-content">
+        <button onclick="closeSignaturePad()"; style="background-color: red; color: white;">Close</button>
+        <h2>Please Sign and leave your Email Here</h2>
+        <p>Please Sign your name and date here...</p>
+        <canvas id="signaturePad" width="800" height="300"></canvas> <!-- Ensure correct dimensions -->
+        <p>Please write down your email.</p>
+        <input type="email" id="emailInput" placeholder="Enter your email">
+        <button onclick="submitSignature()">Submit</button>
+        <i style="color: gray;">By clicking submit, you were not be permitted to do any change to this document any more! You may download a extra piece of copy after you submit.</i>
+    </div>
+</div>
+
+<!-- New PDF Download View -->
+<div class="container" id="downloadViewSection" style="display: none;">
+    <h2>Download Your Contract</h2>
+    <button onclick="downloadPDF()" style="background-color: red; color: white;">Download Contract PDF</button>
+</div>
+
+<!-- Firebase SDKs -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js"></script>
+
+<!-- JavaScript Code -->
+<script>
+    // Firebase configuration
+    const firebaseConfig = {
+        apiKey: "AIzaSyDHVxUbtTydCNU0EZujjHYpI_QuqUUrlqE",
+        authDomain: "blinksg-994ef.firebaseapp.com",
+        projectId: "blinksg-994ef",
+        storageBucket: "blinksg-994ef.appspot.com",
+        messagingSenderId: "807946527437",
+        appId: "1:807946527437:web:9792b51850a73ad1633f84"
+    };
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    const storage = firebase.storage();
+    const auth = firebase.auth();
+
+    const codeEntrySection = document.getElementById('codeEntrySection');
+    const imageViewSection = document.getElementById('imageViewSection');
+    const imageContainer = document.getElementById('imageContainer');
+    const overlay = document.getElementById('overlay');
+    const overlaycheck = document.getElementById('overlay-check');
+    const actionButton = document.getElementById('actionButton');
+    const fetchButton = document.getElementById('fetchButton');
+    const buttonSpinner = document.getElementById('buttonSpinner');
+    const fetchButtonText = document.getElementById('fetchButtonText');
+    const d = new Date();
+    var ContractDocURL = document.getElementById('ContractDocURL');
+    var FullUserName = document.getElementById('FullUserName');
+    var contractType = document.getElementById('ContractType');
+    let code = '';
+    let scrollTimeout;
+
+    // Function to handle fetching the document
+    async function fetchDocument() {
+        code = document.getElementById('codeInput').value.trim();
+        if (!code) {
+            alert('Please enter a code.');
+            return;
+        }
+
+        showButtonSpinner(true); // Show spinner on button
+
+        try {
+            await auth.signInAnonymously();
+            console.log("Signed in anonymously");
+            await fetchDocumentFromFirestore(code);
+        } catch (error) {
+            console.error("Error during fetching:", error);
+            alert("Failed to fetch the document. Please try again.");
+        } finally {
+            showButtonSpinner(false); // Hide spinner once done
+        }
+    }
+
+    async function fetchDocumentFromFirestore(code) {
+        try {
+            const docRef = db.collection('Contracts').doc("MainContracts").collection('contracts').doc(code);
+            const docSnap = await docRef.get();
+
+            if (!docSnap.exists) {
+                throw new Error("No document found with that code.");
+            }
+
+            const data = docSnap.data();
+            contractType = data.ContractType;
+            ContractDocURL = data.ContractDocURL;
+            FullUserName = data.AccountName;
+            console.log("Fetched contract type:", contractType);
+            console.log("Fetched contract URL:", ContractDocURL);
+
+            // Hide code entry and show image view section
+            //codeEntrySection.style.display = 'none';
+            //imageViewSection.style.display = 'flex'; // Flex display for alignment
+            //adjustImageContainerSize(); // Adjust size after showing the section
+
+            overlaycheck.style.display = 'flex';
+
+        } catch (error) {
+            console.error("Error fetching document:", error);
+            alert(error.message);
+        }
+    }
+
+    async function CheckFullName() {
+        const userFullName = document.getElementById('userFullName').value.trim();
+        // console.log(FullUserName)
+        // console.log(userFullName)
+        if (FullUserName != userFullName) {
+            alert('The Full Name you entered was incorrect, please check again. If you have any more question, please contact at bobbywang0225@icloud.com')
+        }else{
+            await fetchContractImages(contractType);
+            overlaycheck.style.display = 'none';
+            codeEntrySection.style.display = 'none';
+            imageViewSection.style.display = 'flex'; // Flex display for alignment
+            adjustImageContainerSize(); // Adjust size after showing the section
+        }
+    }
+
+    async function fetchContractImages(contractType) {
+        try {
+            const contractModelRef = db.collection('Contracts').doc("MainContracts").collection('ContractModels').doc(contractType);
+            const contractModelSnap = await contractModelRef.get();
+
+            if (!contractModelSnap.exists) {
+                throw new Error("No contract model found for this type.");
+            }
+
+            const images = contractModelSnap.data().images; // Assuming 'images' is an array of URLs
+            console.log("Fetched images:", images);
+            displayImages(images);
+
+        } catch (error) {
+            console.error("Error fetching contract images:", error);
+            alert("Failed to fetch images.");
+        }
+    }
+
+    function displayImages(images) {
+    imageContainer.innerHTML = images.map(img => `
+        <img src="${img}" alt="Contract Preview" style="width: 80%; height: auto; margin: 10px 0;">
+    `).join('');
+
+    // Start the timer for 2 minutes (120 seconds)
+    startTimer(120);
+
+    // Scroll event handling for enabling/disabling the button
+    imageContainer.addEventListener('scroll', handleScroll);
+}
+
+// Function to handle the scroll event and update the flag when scrolled to the bottom
+function handleScroll() {
+    // Check if the user has scrolled to the bottom of the image container
+    scrolledToBottom = imageContainer.scrollTop + imageContainer.clientHeight >= imageContainer.scrollHeight;
+    updateNextButtonState(); // Check if both conditions are met to enable the button
+}
+
+// Function to check and update the "Next" button state
+function updateNextButtonState() {
+    const nextButton = document.getElementById('actionButton');
+    // Enable the button only if both the timer is complete and scrolled to the bottom
+    if (timerComplete && scrolledToBottom) {
+        nextButton.disabled = false;
+        nextButton.style.pointerEvents = 'auto'; // Re-enable pointer events
+    } else {
+        nextButton.disabled = true;
+        nextButton.style.pointerEvents = 'none'; // Ensure the button cannot be clicked
+    }
+}
+
+    function startTimer(seconds) {
+        let timeLeft = seconds;
+        const interval = setInterval(() => {
+            if (timeLeft <= 0) {
+                clearInterval(interval);
+                actionButton.disabled = false;
+                console.log("Timer ended, button enabled");
+            } else {
+                timeLeft--;
+                console.log("Timer running:", timeLeft, "seconds left");
+            }
+        }, 1000);
+    }
+
+ // Initialize the signature pad variable
+let signaturePad;
+let countdownInterval; // Variable to store the interval for countdown
+
+function showSignaturePad() {
+    overlay.style.display = 'flex';
+    const canvas = document.getElementById('signaturePad');
+    
+    // Initialize the signature pad only if it hasn't been initialized yet
+    if (!signaturePad) {
+        signaturePad = new SignaturePad(canvas);
+    } else {
+        signaturePad.clear(); // Clear the pad if it was already initialized
+    }
+    
+    console.log("Signature pad displayed");
+}
+
+// Handle signature and email submission
+async function submitSignature() {
+    const email = document.getElementById('emailInput').value.trim();
+
+    // Check for empty email
+    if (!email) {
+        alert('Please enter your email.');
+        return;
+    }
+
+    // Check if the signature pad is initialized and not empty
+    if (!signaturePad || signaturePad.isEmpty()) {
+        alert('Please provide a signature.');
+        return;
+    }
+
+    try {
+        // Get the signature image as a data URL
+        const signatureImage = signaturePad.toDataURL('image/png');
+        
+        // Upload the signature image to Firebase Storage
+        const signatureRef = storage.ref(`signatures/${Date.now()}.png`);
+        await signatureRef.putString(signatureImage, 'data_url');
+
+        // Get the document reference and update it with the signature link and email
+        const docRef = db.collection('Contracts').doc("MainContracts").collection('contracts').doc(code);
+        await docRef.update({ signature: await signatureRef.getDownloadURL(), email, d });
+
+        alert('Signature submitted successfully!');
+        overlay.style.display = 'none';
+        imageContainer.innerHTML = ''; // Clear the images after submission
+
+        // Navigate to the PDF download view
+        navigateToDownloadView();
+
+        console.log("Signature submitted and navigating to download view");
+    } catch (error) {
+        console.error("Error submitting signature:", error);
+        alert("Failed to submit the signature. Please try again.");
+    }
+} 
+
+// Function to navigate to the PDF download view
+function navigateToDownloadView() {
+    imageViewSection.style.display = 'none'; // Hide the image preview section
+    downloadViewSection.style.display = 'block'; // Show the download view section
+}
+
+// Function to handle PDF download from Firebase
+async function downloadPDF() {
+    try {
+        // Check if the URL is valid
+        if (!ContractDocURL) {
+            throw new Error("The file URL is not available.");
+        }
+
+        // Create a temporary anchor element
+        const link = document.createElement('a');
+        link.href = ContractDocURL; // Set the href attribute to the Firebase Storage URL
+        link.download = ''; // You can set a filename here, or leave it empty to use the name from the URL
+        link.target = '_blank'; // Open in a new tab to trigger download in some browsers
+
+        // Append the link to the body, click it and then remove it
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        console.log("File downloaded successfully");
+    } catch (error) {
+        console.error("Error downloading the file:", error);
+        alert("Failed to download the file. Please try again.");
+    }
+}
+
+    // Show or hide the spinner in the button and manage button text visibility
+    function showButtonSpinner(isLoading) {
+        buttonSpinner.style.display = isLoading ? 'block' : 'none';
+        fetchButtonText.innerText = isLoading ? 'Loading...' : 'Fetch Document'; // Change text when loading
+        fetchButton.disabled = isLoading; // Disable button during loading
+    }
+
+    // Adjust only the image container size based on window dimensions
+    function adjustImageContainerSize() {
+        const containerWidth = window.innerWidth - 60;
+        const containerHeight = window.innerHeight * 0.75;
+        imageContainer.style.width = `${containerWidth}px`;
+        imageContainer.style.height = `${containerHeight}px`;
+        imageContainer.style.overflow = 'auto'; // Allow scrolling within the container
+        imageContainer.style.position = 'relative'; // Ensure correct positioning
+    }
+
+    // Call adjustImageContainerSize when the window is resized and initially on load
+    window.addEventListener('resize', adjustImageContainerSize);
+    window.addEventListener('load', adjustImageContainerSize); // Ensure the size is set when the page loads
+
+// Function to start a 2-minute timer and update the Next button text with remaining seconds
+function startTimer(seconds) {
+    let timeLeft = seconds;
+    const nextButton = document.getElementById('actionButton');
+    
+    timerComplete = false; // Reset the timer complete flag
+    nextButton.disabled = true; // Explicitly disable the Next button initially
+    nextButton.style.pointerEvents = 'none'; // Ensure button cannot be clicked by disabling pointer events
+    updateNextButtonText(timeLeft); // Update button text with initial time
+    
+    countdownInterval = setInterval(() => {
+        timeLeft--;
+        updateNextButtonText(timeLeft); // Update button text with remaining time
+        
+        if (timeLeft <= 0) {
+            clearInterval(countdownInterval);
+            timerComplete = true; // Mark the timer as complete
+            updateNextButtonState(); // Check if both conditions are met to enable the button
+        }
+    }, 1000); // Update every second
+}
+
+// Update the "Next" button text with the remaining seconds
+function updateNextButtonText(timeLeft) {
+    const nextButton = document.getElementById('actionButton');
+    nextButton.innerText = `Next (${timeLeft} seconds)`;
+}
+
+function closeSignaturePad() {
+    overlay.style.display = 'none'; // Hide the overlay
+    console.log("Signature pad closed");
+}
+
+</script>
+
+</body>
+</html>
